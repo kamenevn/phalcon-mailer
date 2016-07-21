@@ -28,12 +28,14 @@ class MailerService extends Component
      */
     public function __construct(array $config = [])
     {
-        if (!$config && !$this->di->has('config')) {
+        if (!$config && !$this->getDI()->has('config')) {
             throw new \RuntimeException('Correct config for Mailer is not provided!');
         }
 
-        $this->config = $config ?: $this->di['config']->mail->toArray();
+        $this->config = $config ?: $this->getDI()->get('config')->mail->toArray();
 
+        var_dump($this->getDI());
+        
         $this->registerSwiftMailer();
         $this->registerView();
     }
@@ -48,7 +50,7 @@ class MailerService extends Component
         // Once we have create the mailer instance, we will set a container instance
         // on the mailer. This allows us to resolve mailer classes via containers
         // for maximum testability on said classes instead of passing Closures.
-        $mailer = new Mailer($this->di['mailer.view'], $this->di['swift.mailer']);
+        $mailer = new Mailer($this->getDI()['mailer.view'], $this->getDI()['swift.mailer']);
 
         $this->setMailerDependencies($mailer);
 
@@ -71,8 +73,8 @@ class MailerService extends Component
         // Once we have the transporter registered, we will register the actual Swift
         // mailer instance, passing in the transport instances, which allows us to
         // override this transporter instances during app start-up if necessary.
-        $this->di['swift.mailer'] = function () {
-            return new Swift_Mailer($this->di['swift.transport']);
+        $this->getDI()['swift.mailer'] = function () {
+            return new Swift_Mailer($this->getDI()['swift.transport']);
         };
     }
 
@@ -111,7 +113,7 @@ class MailerService extends Component
      */
     protected function registerSmtpTransport(array $config)
     {
-        $this->di['swift.transport'] = function () use ($config) {
+        $this->getDI()['swift.transport'] = function () use ($config) {
             extract($config);
 
             if (!isset($host, $port)) {
@@ -147,7 +149,7 @@ class MailerService extends Component
      */
     protected function registerSendmailTransport(array $config)
     {
-        $this->di['swift.transport'] = function () use ($config) {
+        $this->getDI()['swift.transport'] = function () use ($config) {
             return SendmailTransport::newInstance($config['sendmail']);
         };
     }
@@ -157,7 +159,7 @@ class MailerService extends Component
      */
     protected function registerMailTransport()
     {
-        $this->di['swift.transport'] = function () {
+        $this->getDI()['swift.transport'] = function () {
             return MailTransport::newInstance();
         };
     }
@@ -167,12 +169,12 @@ class MailerService extends Component
      */
     protected function registerView()
     {
-        if ($this->di->has('view')) {
-            $this->di['mailer.view'] = function () {
-                return $this->di->get('view');
+        if ($this->getDI()->has('view')) {
+            $this->getDI()['mailer.view'] = function () {
+                return $this->getDI()->get('view');
             };
         } else {
-            $this->di['mailer.view'] = function () {
+            $this->getDI()['mailer.view'] = function () {
                 if (!isset($this->config['viewsDir'])) {
                     throw new \InvalidArgumentException('Invalid views dir!');
                 }
@@ -193,10 +195,10 @@ class MailerService extends Component
      */
     protected function setMailerDependencies(Mailer $mailer)
     {
-        $mailer->setDI($this->di);
+        $mailer->setDI($this->getDI());
 
-        if ($this->di->has('queue')) {
-            $mailer->setQueue($this->di['queue']);
+        if ($this->getDI()->has('queue')) {
+            $mailer->setQueue($this->getDI()['queue']);
         }
     }
 }
